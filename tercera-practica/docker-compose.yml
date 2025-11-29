@@ -1,72 +1,61 @@
-version: "3.8"
+version: "3.9"
 
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: zbx-postgres
+    container_name: postgres-zabbix
+    hostname: postgres
     environment:
-      POSTGRES_DB: zabbix
       POSTGRES_USER: zabbix
-      POSTGRES_PASSWORD: zabbix_password
+      POSTGRES_PASSWORD: zabbix_pass
+      POSTGRES_DB: zabbix
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - zbx-net
+      - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
 
   zabbix-server:
-    image: zabbix/zabbix-server-pgsql:alpine-6.4-latest
-    container_name: zbx-server
+    image: zabbix/zabbix-server-pgsql:alpine-7.0-latest
+    container_name: zabbix-server
+    hostname: zabix-server
     depends_on:
       - postgres
     environment:
-      DB_SERVER_HOST: postgres          # hostname interno
-      POSTGRES_DB: zabbix
+      DB_SERVER_HOST: postgres
       POSTGRES_USER: zabbix
-      POSTGRES_PASSWORD: zabbix_password
-    volumes:
-      - zabbix_server_data:/var/lib/zabbix
-    networks:
-      - zbx-net
+      POSTGRES_PASSWORD: zabbix_pass
+      POSTGRES_DB: zabbix
     ports:
       - "10051:10051"
     restart: unless-stopped
 
   zabbix-web:
-    image: zabbix/zabbix-web-nginx-pgsql:alpine-6.4-latest
-    container_name: zbx-web
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0-latest
+    container_name: zabbix-web
+    hostname: zabbix-web
     depends_on:
-      - postgres
       - zabbix-server
+      - postgres
     environment:
-      DB_SERVER_HOST: postgres          # hostname del contenedor de postgres
-      POSTGRES_DB: zabbix
+      ZBX_SERVER_HOST: zabix-server
+      DB_SERVER_HOST: postgres
       POSTGRES_USER: zabbix
-      POSTGRES_PASSWORD: zabbix_password
-      ZBX_SERVER_HOST: zabbix-server    # hostname interno del server
-      PHP_TZ: "UTC"
-    networks:
-      - zbx-net
+      POSTGRES_PASSWORD: zabbix_pass
+      POSTGRES_DB: zabbix
+      PHP_TZ: America/Mexico_City
     ports:
-      - "8080:8080"
+      - "8082:8080"
     restart: unless-stopped
 
   zabbix-agent:
-    image: zabbix/zabbix-agent:alpine-6.4-latest
-    container_name: zbx-agent
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    container_name: zabbix-agent
+    hostname: zabbix-agent
     depends_on:
       - zabbix-server
     environment:
-      ZBX_SERVER_HOST: zabbix-server    # hostname interno
-      ZBX_HOSTNAME: agente1
-    networks:
-      - zbx-net
+      ZBX_SERVER_HOST: zabix-server
+      ZBX_HOSTNAME: zabbix-agent
     restart: unless-stopped
 
 volumes:
-  postgres_data:
-  zabbix_server_data:
-
-networks:
-  zbx-net:
-    driver: bridge
+  pgdata:
